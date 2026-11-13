@@ -103,7 +103,7 @@ def finished_bot_vs_bot_game(empty_bot_vs_bot_game: Game) -> Game:
 
 def _is_api_key_set() -> bool:
     api_key = os.environ.get("OPENAI_API_KEY")
-    return api_key not in [None, ""]
+    return api_key not in [None, "", "ci-placeholder-not-a-real-key"]
 
 
 def test_player_cant_play_against_themselves(
@@ -915,3 +915,8 @@ def test_game_where_user_mentions_codeword_after_manipulator_but_user_is_aware_o
     assert game.is_loss()
     assert not game.is_win()
     assert not game.is_violation()
+
+
+def test_ci_placeholder_does_not_enable_live_api_tests(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "ci-placeholder-not-a-real-key")
+    assert not _is_api_key_set()
