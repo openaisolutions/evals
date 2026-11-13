@@ -215,3 +215,35 @@ def test_file_cache(dummy_recorder, dummy_data_file, retrieval_solver):
     assert all(
         [cached_id == FILE_CACHE[tmpfile_path] for cached_id in cached_ids]
     ), f"Cached file ID should be the same across threads, but got: {cached_ids}"
+
+
+def test_default_threads_are_created_per_solver_without_import_side_effects(monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from evals.solvers import openai_assistants_solver as module
+
+    first_thread = SimpleNamespace(id="first")
+    second_thread = SimpleNamespace(id="second")
+    create = Mock(side_effect=[first_thread, second_thread])
+    monkeypatch.setattr(module.client.beta.threads, "create", create)
+    assistant = SimpleNamespace(id="existing-assistant")
+    first = OpenAIAssistantsSolver(model=MODEL, assistant=assistant)
+    second = OpenAIAssistantsSolver(model=MODEL, assistant=assistant)
+    assert first.thread is first_thread
+    assert second.thread is second_thread
+    assert create.call_count == 2
+
+
+def test_explicit_thread_does_not_create_another_thread(monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from evals.solvers import openai_assistants_solver as module
+
+    create = Mock()
+    monkeypatch.setattr(module.client.beta.threads, "create", create)
+    thread = SimpleNamespace(id="provided-thread")
+    solver = OpenAIAssistantsSolver(
+        model=MODEL, assistant=SimpleNamespace(id="existing-assistant"), thread=thread
+    )
+    assert solver.thread is thread
+    create.assert_not_called()
